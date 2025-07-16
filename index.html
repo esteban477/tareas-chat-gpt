@@ -44,6 +44,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease-in-out;
+            flex-shrink: 0; /* Evita que el checkbox se encoja */
         }
         input[type="checkbox"]:checked {
             background-color: #3b82f6; /* Color de fondo cuando está marcado */
@@ -57,6 +58,34 @@
         input[type="checkbox"]:focus {
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* Anillo de enfoque */
+        }
+
+        /* Estilos para el manejador de arrastre */
+        .drag-handle {
+            cursor: grab; /* Cursor para indicar que es arrastrable */
+            width: 24px; /* Ancho del cuadrado */
+            height: 24px; /* Alto del cuadrado */
+            background-color: #a0aec0; /* Color de fondo del cuadrado */
+            border-radius: 4px; /* Bordes ligeramente redondeados */
+            margin-right: 12px; /* Espacio a la derecha del manejador */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white; /* Color del icono/texto dentro del manejador */
+            font-size: 18px;
+            line-height: 1; /* Ajuste de línea para el icono */
+            user-select: none; /* Evita selección de texto al arrastrar */
+            transition: background-color 0.2s ease-in-out;
+        }
+        .drag-handle:active {
+            cursor: grabbing; /* Cursor cuando se está arrastrando */
+        }
+        .dark .drag-handle {
+            background-color: #4a5568; /* Color para modo oscuro */
+        }
+        /* Opcional: Icono de "tres barras" para el manejador */
+        .drag-handle::before {
+            content: '☰'; /* Unicode para tres barras horizontales */
         }
     </style>
 </head>
@@ -116,7 +145,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
     <!-- Supabase SDK -->
-    <!-- Se cambió el tipo de script a "module" y la URL para importar createClient -->
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -284,6 +312,7 @@
                 div.setAttribute('data-id', task.id); // Almacena el ID de Supabase en el elemento DOM
                 div.innerHTML = `
                     <div class="flex items-center flex-grow">
+                        <div class="drag-handle"></div> <!-- Nuevo manejador de arrastre -->
                         <input type="checkbox" class="h-6 w-6 cursor-pointer" data-id="${task.id}" ${task.completed ? 'checked' : ''} />
                         <p class="ml-4 text-lg ${task.completed ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-800 dark:text-gray-200'}">${task.text}</p>
                     </div>
@@ -294,10 +323,11 @@
                 taskListContainer.appendChild(div);
             });
 
-            // Inicializa SortableJS solo una vez
+            // Inicializa SortableJS solo una vez y especifica el manejador de arrastre
             if (!sortableInstance) {
                 sortableInstance = Sortable.create(taskListContainer, {
                     animation: 150,
+                    handle: '.drag-handle', // Especifica el selector del manejador de arrastre
                     onEnd: async (evt) => {
                         const ids = Array.from(taskListContainer.children).map(el => el.getAttribute('data-id'));
                         await updateTaskOrder(ids);
@@ -307,15 +337,9 @@
             // Si ya está inicializado, no hacemos nada aquí, SortableJS maneja los cambios de DOM.
 
             // Agregar listener para eliminar tarea al tildar checkbox
-            // Ojo: Si el checkbox es para "completar" en lugar de "eliminar",
-            // necesitarás una columna 'completed' en tu tabla de Supabase
-            // y una función `updateTaskStatus` en lugar de `deleteTask`.
             taskListContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                 checkbox.addEventListener('change', async (e) => {
                     const id = e.target.getAttribute('data-id');
-                    // Actualmente, el checkbox elimina la tarea.
-                    // Si quieres marcar como completada, necesitarías una columna 'completed' en tu tabla
-                    // y una función para actualizar ese estado en Supabase.
                     if (e.target.checked) {
                         await deleteTask(id); // Elimina la tarea al marcar el checkbox
                     }
@@ -342,6 +366,7 @@
     </script>
 </body>
 </html>
+
 
 
 
