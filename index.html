@@ -1,3 +1,11 @@
+Perfecto, Esteban. Te agrego esa funcionalidad:
+
+* El checkbox activa la eliminación automática de la tarea.
+* También mantenemos el botón de eliminar manual por si querés borrar sin tildar.
+
+Acá te dejo el código completo actualizado para que lo pegues directo en tu proyecto:
+
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -49,7 +57,7 @@
       </form>
     </div>
 
-    <main id="task-list-container"></main>
+    <main id="task-list-container" class="space-y-4"></main>
 
     <div id="empty-state" class="text-center py-12 hidden">
       <svg
@@ -67,27 +75,24 @@
           d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
         />
       </svg>
-      <h3 class="mt-2 text-xl font-medium text-gray-900 dark:text-white">¡Todo listo!</h3>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No tienes tareas pendientes. Agrega una nueva para empezar.</p>
+      <h3 class="mt-2 text-xl font-medium text-gray-900 dark:text-white">
+        ¡Todo listo!
+      </h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        No tienes tareas pendientes. Agrega una nueva para empezar.
+      </p>
     </div>
   </div>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- SortableJS -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCnDnpqgP_LExV0NiiA0rB5-o4g_lzIHKo",
-      authDomain: "tareas-7c993.firebaseapp.com",
-      projectId: "tareas-7c993",
-      storageBucket: "tareas-7c993.firebasestorage.app",
-      messagingSenderId: "746968638962",
-      appId: "1:746968638962:web:e125dce17e24788bb8776b"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const SUPABASE_URL = 'https://eikehbchkmdiaomkaigq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpa2VoYmNoa21kaWFvbWthaWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2NjgxNjEsImV4cCI6MjA2ODI0NDE2MX0.O3JIErCa9m-qjgKdKemjU1sCB7U8gNVvbtWk-M7Phd0';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const form = document.getElementById('new-task-form');
     const input = document.getElementById('new-task-input');
@@ -95,28 +100,56 @@
     const emptyState = document.getElementById('empty-state');
 
     let tasks = [];
-    const tasksCollection = db.collection('tasks');
 
-    function loadTasks() {
-      tasksCollection.get().then(snapshot => {
-        tasks = [];
-        snapshot.forEach(doc => {
-          tasks.push({ id: doc.id, ...doc.data() });
-        });
-        renderTasks();
-      });
+    async function loadTasks() {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('order', { ascending: true });
+
+      if (error) {
+        console.error('Error cargando tareas:', error.message);
+        return;
+      }
+
+      tasks = data;
+      renderTasks();
     }
 
-    function addTask(text) {
+    async function addTask(text) {
       if (!text.trim()) return;
-      tasksCollection.add({ text }).then(() => {
+      const order = tasks.length > 0 ? tasks[tasks.length - 1].order + 1 : 0;
+      const { error } = await supabase
+        .from('tasks')
+        .insert([{ text, order }]);
+
+      if (error) {
+        console.error('Error agregando tarea:', error.message);
+      } else {
         input.value = '';
         loadTasks();
-      });
+      }
     }
 
-    function deleteTask(id) {
-      tasksCollection.doc(id).delete().then(loadTasks);
+    async function deleteTask(id) {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error eliminando tarea:', error.message);
+      } else {
+        loadTasks();
+      }
+    }
+
+    async function updateTaskOrder(newOrder) {
+      for (let i = 0; i < newOrder.length; i++) {
+        const id = newOrder[i];
+        await supabase.from('tasks').update({ order: i }).eq('id', id);
+      }
+      loadTasks();
     }
 
     function renderTasks() {
@@ -129,10 +162,11 @@
 
       tasks.forEach(task => {
         const div = document.createElement('div');
-        div.className = 'task-enter bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-4 flex items-center justify-between';
+        div.className = 'task-enter bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex items-center justify-between';
+        div.setAttribute('data-id', task.id);
         div.innerHTML = `
           <div class="flex items-center flex-grow">
-            <input type="checkbox" class="h-6 w-6" disabled />
+            <input type="checkbox" class="h-6 w-6 cursor-pointer" data-id="${task.id}" />
             <p class="ml-4 text-lg text-gray-800 dark:text-gray-200">${task.text}</p>
           </div>
           <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400 font-semibold" data-id="${task.id}">
@@ -140,6 +174,24 @@
           </button>
         `;
         taskListContainer.appendChild(div);
+      });
+
+      Sortable.create(taskListContainer, {
+        animation: 150,
+        onEnd: async (evt) => {
+          const ids = Array.from(taskListContainer.children).map(el => el.getAttribute('data-id'));
+          await updateTaskOrder(ids);
+        }
+      });
+
+      // Agregar listener para eliminar tarea al tildar checkbox
+      taskListContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', async (e) => {
+          const id = e.target.getAttribute('data-id');
+          if (e.target.checked) {
+            await deleteTask(id);
+          }
+        });
       });
     }
 
@@ -157,3 +209,6 @@
   </script>
 </body>
 </html>
+```
+
+Si necesitás que te explique alguna parte o querés seguir mejorándolo, avisame.
