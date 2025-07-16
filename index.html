@@ -1,206 +1,347 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lista de Tareas</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-    .task-enter {
-      animation: slideIn 0.3s ease-out forwards;
-    }
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lista de Tareas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
+    <style>
+        /* Estilos personalizados para la fuente Inter y transiciones */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Un color de fondo suave */
+            color: #1a202c; /* Color de texto oscuro por defecto */
+        }
+        .dark body {
+            background-color: #1a202c; /* Fondo oscuro para modo oscuro */
+            color: #e2e8f0; /* Color de texto claro para modo oscuro */
+        }
+        .task-enter {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* Estilos para el checkbox personalizado */
+        input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #cbd5e0; /* Color del borde */
+            border-radius: 6px; /* Bordes redondeados */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease-in-out;
+        }
+        input[type="checkbox"]:checked {
+            background-color: #3b82f6; /* Color de fondo cuando está marcado */
+            border-color: #3b82f6; /* Color del borde cuando está marcado */
+        }
+        input[type="checkbox"]:checked::after {
+            content: '✔'; /* Símbolo de verificación */
+            color: white;
+            font-size: 16px;
+        }
+        input[type="checkbox"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* Anillo de enfoque */
+        }
+    </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-  <div class="container mx-auto max-w-2xl px-4 py-8 md:py-16">
-    <header class="text-center mb-8">
-      <h1 class="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white">Mi Lista de Tareas</h1>
-      <p class="text-gray-500 dark:text-gray-400 mt-2">Organiza tu día, una tarea a la vez.</p>
-    </header>
+    <div class="container mx-auto max-w-2xl px-4 py-8 md:py-16">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white">Mi Lista de Tareas</h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Organiza tu día, una tarea a la vez.</p>
+        </header>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
-      <form id="new-task-form" class="flex flex-col sm:flex-row gap-4">
-        <input
-          type="text"
-          id="new-task-input"
-          placeholder="¿Qué necesitas hacer?"
-          class="flex-grow bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-blue-500 dark:focus:border-blue-400 rounded-lg px-4 py-3 text-lg outline-none transition-colors"
-        />
-        <button
-          type="submit"
-          class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105"
-        >
-          Agregar Tarea
-        </button>
-      </form>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+            <form id="new-task-form" class="flex flex-col sm:flex-row gap-4">
+                <input
+                    type="text"
+                    id="new-task-input"
+                    placeholder="¿Qué necesitas hacer?"
+                    class="flex-grow bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-blue-500 dark:focus:border-blue-400 rounded-lg px-4 py-3 text-lg outline-none transition-colors text-gray-900 dark:text-gray-100"
+                />
+                <button
+                    type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+                >
+                    Agregar Tarea
+                </button>
+            </form>
+            <div id="messageBox" class="mt-4 p-3 rounded-lg text-sm text-center hidden" role="alert"></div>
+        </div>
+
+        <main id="task-list-container" class="space-y-4"></main>
+
+        <div id="empty-state" class="text-center py-12 hidden">
+            <svg
+                class="mx-auto h-12 w-12 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+            >
+                <path
+                    vector-effect="non-scaling-stroke"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+            </svg>
+            <h3 class="mt-2 text-xl font-medium text-gray-900 dark:text-white">
+                ¡Todo listo!
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                No tienes tareas pendientes. Agrega una nueva para empezar.
+            </p>
+        </div>
     </div>
 
-    <main id="task-list-container" class="space-y-4"></main>
+    <!-- SortableJS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-    <div id="empty-state" class="text-center py-12 hidden">
-      <svg
-        class="mx-auto h-12 w-12 text-gray-400"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          vector-effect="non-scaling-stroke"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      </svg>
-      <h3 class="mt-2 text-xl font-medium text-gray-900 dark:text-white">
-        ¡Todo listo!
-      </h3>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        No tienes tareas pendientes. Agrega una nueva para empezar.
-      </p>
-    </div>
-  </div>
+    <!-- Supabase SDK -->
+    <!-- Se cambió el tipo de script a "module" y la URL para importar createClient -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-  <!-- SortableJS -->
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+        // *** CONFIGURACIÓN DE SUPABASE ***
+        // Asegúrate de que estas credenciales sean las correctas para tu proyecto Supabase.
+        const SUPABASE_URL = 'https://eikehbchkmdiaomkaigq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpa2VoYmNoa21kaWFvbWthaWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2NjgxNjEsImV4cCI6MjA2ODI0NDE2MX0.O3JIErCa9m-qjgKdKemjU1sCB7U8gNVvbtWk-M7Phd0';
+        
+        // Inicializa el cliente de Supabase usando createClient importado.
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  <!-- Supabase SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script>
-    const SUPABASE_URL = 'https://eikehbchkmdiaomkaigq.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpa2VoYmNoa21kaWFvbWthaWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2NjgxNjEsImV4cCI6MjA2ODI0NDE2MX0.O3JIErCa9m-qjgKdKemjU1sCB7U8gNVvbtWk-M7Phd0';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Referencias a los elementos del DOM
+        const form = document.getElementById('new-task-form');
+        const input = document.getElementById('new-task-input');
+        const taskListContainer = document.getElementById('task-list-container');
+        const emptyState = document.getElementById('empty-state');
+        const messageBox = document.getElementById('messageBox'); // Caja de mensajes para feedback al usuario
 
-    const form = document.getElementById('new-task-form');
-    const input = document.getElementById('new-task-input');
-    const taskListContainer = document.getElementById('task-list-container');
-    const emptyState = document.getElementById('empty-state');
+        let tasks = []; // Array para almacenar las tareas en memoria
 
-    let tasks = [];
+        // Variable para la instancia de SortableJS
+        let sortableInstance = null;
 
-    async function loadTasks() {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .order('order', { ascending: true });
-
-      if (error) {
-        console.error('Error cargando tareas:', error.message);
-        return;
-      }
-
-      tasks = data;
-      renderTasks();
-    }
-
-    async function addTask(text) {
-      if (!text.trim()) return;
-      const order = tasks.length > 0 ? tasks[tasks.length - 1].order + 1 : 0;
-      const { error } = await supabase
-        .from('tasks')
-        .insert([{ text, order }]);
-
-      if (error) {
-        console.error('Error agregando tarea:', error.message);
-      } else {
-        input.value = '';
-        loadTasks();
-      }
-    }
-
-    async function deleteTask(id) {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error eliminando tarea:', error.message);
-      } else {
-        loadTasks();
-      }
-    }
-
-    async function updateTaskOrder(newOrder) {
-      for (let i = 0; i < newOrder.length; i++) {
-        const id = newOrder[i];
-        await supabase.from('tasks').update({ order: i }).eq('id', id);
-      }
-      loadTasks();
-    }
-
-    function renderTasks() {
-      taskListContainer.innerHTML = '';
-      if (tasks.length === 0) {
-        emptyState.classList.remove('hidden');
-      } else {
-        emptyState.classList.add('hidden');
-      }
-
-      tasks.forEach(task => {
-        const div = document.createElement('div');
-        div.className = 'task-enter bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex items-center justify-between';
-        div.setAttribute('data-id', task.id);
-        div.innerHTML = `
-          <div class="flex items-center flex-grow">
-            <input type="checkbox" class="h-6 w-6 cursor-pointer" data-id="${task.id}" />
-            <p class="ml-4 text-lg text-gray-800 dark:text-gray-200">${task.text}</p>
-          </div>
-          <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400 font-semibold" data-id="${task.id}">
-            Eliminar
-          </button>
-        `;
-        taskListContainer.appendChild(div);
-      });
-
-      Sortable.create(taskListContainer, {
-        animation: 150,
-        onEnd: async (evt) => {
-          const ids = Array.from(taskListContainer.children).map(el => el.getAttribute('data-id'));
-          await updateTaskOrder(ids);
+        /**
+         * Muestra un mensaje en la caja de mensajes.
+         * @param {string} message - El mensaje a mostrar.
+         * @param {string} type - El tipo de mensaje ('success' o 'error').
+         */
+        function showMessage(message, type) {
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+            if (type === 'success') {
+                messageBox.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'text-red-800');
+            }
+            // Muestra el mensaje por 5 segundos y luego lo oculta
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000);
         }
-      });
 
-      // Agregar listener para eliminar tarea al tildar checkbox
-      taskListContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-        checkbox.addEventListener('change', async (e) => {
-          const id = e.target.getAttribute('data-id');
-          if (e.target.checked) {
-            await deleteTask(id);
-          }
+        /**
+         * Carga las tareas desde Supabase y las renderiza.
+         */
+        async function loadTasks() {
+            try {
+                const { data, error } = await supabase
+                    .from('tasks')
+                    .select('*')
+                    .order('order', { ascending: true });
+
+                if (error) {
+                    throw error;
+                }
+
+                tasks = data;
+                renderTasks();
+            } catch (error) {
+                console.error('Error cargando tareas:', error.message);
+                showMessage(`Error al cargar tareas: ${error.message}`, 'error');
+            }
+        }
+
+        /**
+         * Agrega una nueva tarea a Supabase.
+         * @param {string} text - El texto de la tarea.
+         */
+        async function addTask(text) {
+            const trimmedText = text.trim();
+            if (!trimmedText) {
+                showMessage('La tarea no puede estar vacía.', 'error');
+                return;
+            }
+
+            try {
+                // Determina el orden de la nueva tarea
+                const order = tasks.length > 0 ? Math.max(...tasks.map(t => t.order)) + 1 : 0;
+                
+                const { error } = await supabase
+                    .from('tasks')
+                    .insert([{ text: trimmedText, order }]);
+
+                if (error) {
+                    throw error;
+                }
+
+                input.value = ''; // Limpia el input
+                showMessage('Tarea agregada exitosamente.', 'success');
+                loadTasks(); // Vuelve a cargar las tareas para actualizar la UI
+            } catch (error) {
+                console.error('Error agregando tarea:', error.message);
+                showMessage(`Error al agregar tarea: ${error.message}`, 'error');
+            }
+        }
+
+        /**
+         * Elimina una tarea de Supabase.
+         * @param {string} id - El ID de la tarea a eliminar.
+         */
+        async function deleteTask(id) {
+            try {
+                const { error } = await supabase
+                    .from('tasks')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) {
+                    throw error;
+                }
+
+                showMessage('Tarea eliminada exitosamente.', 'success');
+                loadTasks(); // Vuelve a cargar las tareas para actualizar la UI
+            } catch (error) {
+                console.error('Error eliminando tarea:', error.message);
+                showMessage(`Error al eliminar tarea: ${error.message}`, 'error');
+            }
+        }
+
+        /**
+         * Actualiza el orden de las tareas en Supabase después de un arrastre.
+         * @param {Array<string>} newOrder - Un array de IDs de tareas en el nuevo orden.
+         */
+        async function updateTaskOrder(newOrder) {
+            try {
+                // Creamos un array de promesas para las actualizaciones
+                const updates = newOrder.map((id, index) => 
+                    supabase.from('tasks').update({ order: index }).eq('id', id)
+                );
+                
+                // Esperamos a que todas las actualizaciones se completen
+                const results = await Promise.all(updates);
+
+                // Verificamos si hubo algún error en las actualizaciones
+                const hasError = results.some(result => result.error);
+                if (hasError) {
+                    const firstError = results.find(result => result.error).error;
+                    throw firstError;
+                }
+
+                showMessage('Orden de tareas actualizada.', 'success');
+                loadTasks(); // Vuelve a cargar las tareas para asegurar la consistencia
+            } catch (error) {
+                console.error('Error actualizando el orden de las tareas:', error.message);
+                showMessage(`Error al actualizar el orden: ${error.message}`, 'error');
+            }
+        }
+
+        /**
+         * Renderiza las tareas en la lista.
+         */
+        function renderTasks() {
+            taskListContainer.innerHTML = ''; // Limpia el contenedor antes de renderizar
+            
+            // Muestra u oculta el estado vacío
+            if (tasks.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            tasks.forEach(task => {
+                const div = document.createElement('div');
+                div.className = 'task-enter bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex items-center justify-between';
+                div.setAttribute('data-id', task.id); // Almacena el ID de Supabase en el elemento DOM
+                div.innerHTML = `
+                    <div class="flex items-center flex-grow">
+                        <input type="checkbox" class="h-6 w-6 cursor-pointer" data-id="${task.id}" ${task.completed ? 'checked' : ''} />
+                        <p class="ml-4 text-lg ${task.completed ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-800 dark:text-gray-200'}">${task.text}</p>
+                    </div>
+                    <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400 font-semibold py-2 px-4 rounded-lg transition-colors" data-id="${task.id}">
+                        Eliminar
+                    </button>
+                `;
+                taskListContainer.appendChild(div);
+            });
+
+            // Inicializa SortableJS solo una vez
+            if (!sortableInstance) {
+                sortableInstance = Sortable.create(taskListContainer, {
+                    animation: 150,
+                    onEnd: async (evt) => {
+                        const ids = Array.from(taskListContainer.children).map(el => el.getAttribute('data-id'));
+                        await updateTaskOrder(ids);
+                    }
+                });
+            }
+            // Si ya está inicializado, no hacemos nada aquí, SortableJS maneja los cambios de DOM.
+
+            // Agregar listener para eliminar tarea al tildar checkbox
+            // Ojo: Si el checkbox es para "completar" en lugar de "eliminar",
+            // necesitarás una columna 'completed' en tu tabla de Supabase
+            // y una función `updateTaskStatus` en lugar de `deleteTask`.
+            taskListContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    // Actualmente, el checkbox elimina la tarea.
+                    // Si quieres marcar como completada, necesitarías una columna 'completed' en tu tabla
+                    // y una función para actualizar ese estado en Supabase.
+                    if (e.target.checked) {
+                        await deleteTask(id); // Elimina la tarea al marcar el checkbox
+                    }
+                });
+            });
+        }
+
+        // Event listener para agregar tarea
+        form.addEventListener('submit', (e) => {
+            e.preventDefault(); // Previene el envío del formulario
+            addTask(input.value);
         });
-      });
-    }
 
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      addTask(input.value);
-    });
+        // Event listener para eliminar tarea (delegación de eventos)
+        taskListContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-id]');
+            if (btn) {
+                deleteTask(btn.dataset.id);
+            }
+        });
 
-    taskListContainer.addEventListener('click', (e) => {
-      const btn = e.target.closest('button[data-id]');
-      if (btn) deleteTask(btn.dataset.id);
-    });
-
-    loadTasks();
-  </script>
+        // Carga las tareas al cargar la página
+        loadTasks();
+    </script>
 </body>
 </html>
-```
+
 
 
