@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lista de Tareas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .task-enter {
+      animation: slideIn 0.3s ease-out forwards;
+    }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <div class="container mx-auto max-w-2xl px-4 py-8 md:py-16">
+    <header class="text-center mb-8">
+      <h1 class="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white">Mi Lista de Tareas</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">Organiza tu día, una tarea a la vez.</p>
+    </header>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+      <form id="new-task-form" class="flex flex-col sm:flex-row gap-4">
+        <input
+          type="text"
+          id="new-task-input"
+          placeholder="¿Qué necesitas hacer?"
+          class="flex-grow bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-blue-500 dark:focus:border-blue-400 rounded-lg px-4 py-3 text-lg outline-none transition-colors"
+        />
+        <button
+          type="submit"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+        >
+          Agregar Tarea
+        </button>
+      </form>
+    </div>
+
+    <main id="task-list-container"></main>
+
+    <div id="empty-state" class="text-center py-12 hidden">
+      <svg
+        class="mx-auto h-12 w-12 text-gray-400"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          vector-effect="non-scaling-stroke"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      <h3 class="mt-2 text-xl font-medium text-gray-900 dark:text-white">¡Todo listo!</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No tienes tareas pendientes. Agrega una nueva para empezar.</p>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCnDnpqgP_LExV0NiiA0rB5-o4g_lzIHKo",
+      authDomain: "tareas-7c993.firebaseapp.com",
+      projectId: "tareas-7c993",
+      storageBucket: "tareas-7c993.firebasestorage.app",
+      messagingSenderId: "746968638962",
+      appId: "1:746968638962:web:e125dce17e24788bb8776b"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const form = document.getElementById('new-task-form');
+    const input = document.getElementById('new-task-input');
+    const taskListContainer = document.getElementById('task-list-container');
+    const emptyState = document.getElementById('empty-state');
+
+    let tasks = [];
+    const tasksCollection = db.collection('tasks');
+
+    function loadTasks() {
+      tasksCollection.get().then(snapshot => {
+        tasks = [];
+        snapshot.forEach(doc => {
+          tasks.push({ id: doc.id, ...doc.data() });
+        });
+        renderTasks();
+      });
+    }
+
+    function addTask(text) {
+      if (!text.trim()) return;
+      tasksCollection.add({ text }).then(() => {
+        input.value = '';
+        loadTasks();
+      });
+    }
+
+    function deleteTask(id) {
+      tasksCollection.doc(id).delete().then(loadTasks);
+    }
+
+    function renderTasks() {
+      taskListContainer.innerHTML = '';
+      if (tasks.length === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      tasks.forEach(task => {
+        const div = document.createElement('div');
+        div.className = 'task-enter bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-4 flex items-center justify-between';
+        div.innerHTML = `
+          <div class="flex items-center flex-grow">
+            <input type="checkbox" class="h-6 w-6" disabled />
+            <p class="ml-4 text-lg text-gray-800 dark:text-gray-200">${task.text}</p>
+          </div>
+          <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400 font-semibold" data-id="${task.id}">
+            Eliminar
+          </button>
+        `;
+        taskListContainer.appendChild(div);
+      });
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      addTask(input.value);
+    });
+
+    taskListContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-id]');
+      if (btn) deleteTask(btn.dataset.id);
+    });
+
+    loadTasks();
+  </script>
+</body>
+</html>
